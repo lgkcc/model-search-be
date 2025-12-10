@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  login        String   @unique
+  password     String
+  refreshToken String?
+  createdAt   DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  roles        Role[]   @default([USER])
+  profile      Profile?
+  isDeleted    Boolean  @default(false)
+  telegramId   String?  @unique
+  telegramVerification TelegramVerification?
+}
+
+model TelegramVerification {
+  id String @id @default(cuid())
+  verificationCode String @unique
+  expiresAt DateTime
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum TgStatus {
+  PENDING
+  CONNECTED
+  NOT_CONNECTED
+}
+enum TransactionStatus {
+  INCOME
+  OUTCOME
+}
+
+model Profile {
+  id                 String                         @id @default(cuid())
+  user               User                           @relation(fields: [userId], references: [id])
+  userId             String                         @unique
+  isDeleted          Boolean                        @default(false)
+  currencies         CurrenciesOnProfiles[]
+  galleryImages      String[]
+  image              String?
+  reviews            Review[]
+  messengers         MessengersOnProfiles[]
+  customLinks        Json[]
+  additionalServices AdditionalServicesOnProfiles[]
+  profileName        String?
+  description        String?
+  age                Int?
+  height             Int?
+  width              Int?
+  cupSize            Float?
+  bodyType           BodyTypeDictionary?            @relation(fields: [bodyTypeId], references: [id])
+  bodyTypeId         String?
+  hairColor          HairColorDictionary?           @relation(fields: [hairColorId], references: [id])
+  hairColorId        String?
+  hairHeight         HairLengthDictionary?          @relation(fields: [hairHeightId], references: [id])
+  hairHeightId       String?
+  startPublishDate   DateTime?
+  endPublishDate     DateTime?
+  upDate             DateTime?
+  remainsTime        String?
+  services           ServicesOnProfile[]
+  statistics         Statistics[]
+  planUp             PlanUp[]
+  isFreeze           Boolean                        @default(true)
+  balance            Int                            @default(0)
+  balanceHistory     BalanceHistory[]
+}
+
+model BalanceHistory {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  amount    Int
+  type      TransactionStatus
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model PriceDictionary {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServicesOnProfile {
+  price         String
+  Profile       Profile               @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId     String
+  serviceType   ServicesTypeDictionary @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  serviceTypeId String
+
+  @@id([profileId, serviceTypeId])
+}
+
+model ServicesTypeDictionary {
+  id         String    @id @default(cuid())
+  value       String    @unique
+  key String    @unique
+  services   ServicesOnProfile[]
+}
+
+model CurrencyDictionary {
+  id             String                 @id @default(cuid())
+  key String                 @unique
+  value        String                 @unique
+  profiles       CurrenciesOnProfiles[]
+}
+
+model CurrenciesOnProfiles {
+  profile    Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId  String
+  currency   CurrencyDictionary @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  currencyId String
+
+  @@id([profileId, currencyId])
+}
+
+model MessengerDictionary {
+  id       String                 @id @default(cuid())
+  key     String                 @unique
+  value     String                 @unique
+  profiles MessengersOnProfiles[]
+}
+
+model MessengersOnProfiles {
+  profile     Profile             @relation(fields: [profileId], references: [id])
+  profileId   String
+  messender   MessengerDictionary @relation(fields: [messengerId], references: [id])
+  messengerId String
+  href String
+
+  @@id([profileId, messengerId])
+}
+
+model AdditionalServicesDictionary {
+  id         String                         @id @default(cuid())
+  value       String                         @unique
+  key String                         @unique
+  profiles   AdditionalServicesOnProfiles[]
+}
+
+model AdditionalServicesOnProfiles {
+  profile              Profile                      @relation(fields: [profileId], references: [id])
+  profileId            String
+  additionalServices   AdditionalServicesDictionary @relation(fields: [additionalServicesId], references: [id])
+  additionalServicesId String
+
+  @@id([profileId, additionalServicesId])
+}
+
+model BodyTypeDictionary {
+  id             String    @id @default(cuid())
+  value       String    @unique
+  key String    @unique
+  // profiles BodiesOnProfiles[]
+  profiles       Profile[]
+}
+
+model HairColorDictionary {
+  id          String    @id @default(cuid())
+  value       String    @unique
+  key String    @unique
+  profiles    Profile[]
+}
+
+model HairLengthDictionary {
+  id           String    @id @default(cuid())
+  value       String    @unique
+  key String    @unique
+  profiles     Profile[]
+}
+
+// model BodiesOnProfiles {
+//   profile    Profile            @relation(fields: [profileId], references: [id])
+//   profileId  String
+//   bodyType   BodyTypeDictionary @relation(fields: [bodyTypeId], references: [id])
+//   bodyTypeId String
+//
+//   @@id([profileId, bodyTypeId])
+// }
+
+model Statistics {
+  id             String         @id @default(cuid())
+  Profile        Profile?       @relation(fields: [profileId], references: [id])
+  profileId      String?
+  statisticDate  DateTime?
+  statisticsType StatisticsType
+  count          Int            @default(1)
+  dayTime        DateTime[]
+}
+
+enum StatisticsType {
+  Telegram
+  WhatsApp
+  Viber
+  Skype
+  Teams
+  Show
+  View
+}
+
+// TODO добавить все возможные типы статистики
+
+model PlanUp {
+  id        String   @id @default(cuid())
+  profile   Profile  @relation(fields: [profileId], references: [id])
+  profileId String
+  time      DateTime
+  cost      Int
+}
+
+model Review {
+  id          String  @id @default(cuid())
+  profile     Profile @relation(fields: [profileId], references: [id])
+  profileId   String
+  text        String
+  isDeleted   Boolean @default(false)
+  isPublished Boolean @default(false)
+  createdAt   DateTime @default(now())
+}
+
+enum Role {
+  USER
+  MODEL
+  ADMIN
+}
+
+// TODO Понять как хранить цены на подняте и активацию
