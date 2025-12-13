@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import { PriceService } from '../dictionaries/price.service';
 import process from 'node:process';
@@ -201,14 +205,30 @@ export class ProfilesService {
     });
   }
   async uploadProfileGallery(userId: string, files: Express.Multer.File[]) {
-    console.log(files);
-    // const loadedFiles = await this.imagesService.uploadImage(files);
-    // await this.dbService.profile.update({
-    //   where: { userId },
-    //   data: {
-    //     image: loadedFile.fileName,
-    //   },
-    // });
+    const loadedFiles = await this.imagesService.uploadImage(files);
+    await this.dbService.profile.update({
+      where: { userId },
+      data: {
+        galleryImages: { push: loadedFiles.map((file) => file.fileName) },
+      },
+    });
+  }
+  async removeProfileGalleryPhoto(userId: string, imageId: string) {
+    const profile = await this.dbService.profile.findUnique({
+      where: { userId },
+    });
+    if (!profile) {
+      return new ForbiddenException();
+    }
+    const updateImages = profile.galleryImages.filter(
+      (image) => image !== imageId,
+    );
+    await this.dbService.profile.update({
+      where: { userId },
+      data: {
+        galleryImages: { set: updateImages },
+      },
+    });
   }
   async changeProfileMainData({
     userId,

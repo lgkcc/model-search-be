@@ -23,7 +23,7 @@ import { Role } from '../common/const/const';
 import { SessionInfo } from '../common/decorators/session-info.decorator';
 import type { Session } from '../common/types/types';
 import { UsersService } from '../users/users.service';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 
 //CHECK LIST
 // Change profile name - ready
@@ -74,7 +74,7 @@ export class ProfilesController {
   }
   @Post('/upload-gallery')
   @Roles(Role.MODEL)
-  @UseInterceptors(FileInterceptor('files'))
+  @UseInterceptors(FilesInterceptor('files'))
   async uploadGallery(
     @SessionInfo() sessionInfo: Session,
     @UploadedFiles(
@@ -89,6 +89,18 @@ export class ProfilesController {
     files: Express.Multer.File[],
   ) {
     await this.profilesService.uploadProfileGallery(sessionInfo.id, files);
+  }
+
+  @Post('/remove-gallery-image')
+  @Roles(Role.MODEL)
+  async removeGalleryImage(
+    @SessionInfo() sessionInfo: Session,
+    @Body() body: { imageId: string },
+  ) {
+    await this.profilesService.removeProfileGalleryPhoto(
+      sessionInfo.id,
+      body.imageId,
+    );
   }
 
   @Post('/change-currencies')
